@@ -20,6 +20,7 @@ const pracBtn       = document.querySelector('#pracBtn');
 const speakBtn      = document.querySelector('#speakBtn');
 const printBtn      = document.querySelector('#printBtn');
 const playerCount   = document.querySelector('#playerCount');
+const randBtn       = document.querySelector('.rand-btn');
 
 let timerArr;
 let timerIdx = 0;
@@ -37,8 +38,52 @@ homeBtn.addEventListener('click', switchLayerWrap('menu'));
 speakBtn.addEventListener('click', speakCurrentWord);
 printBtn.addEventListener('click', printWrap);
 
+function loadJSON(){
+    fetch('./data/new600.json')
+    .then(res => {
+        if (res.ok) {
+            console.log('SUCCESS');
+        } else {
+            console.log('FAILURE');
+        }
+        return res.json()
+    })
+    .then(data => {
+        wordList = data;
+        populateQueue();
+        randBtn.addEventListener('click', pickRandomWord);
+        // console.log(data)
+    })
+    .catch(error => console.log('ERROR'));
+}
+
+loadJSON();
+
 function printWrap() {
     window.print()
+}
+
+function pickRandomWord() {
+    if (wordQueue.length < 1) {
+        populateQueue();
+    }
+    
+    const randPick = wordQueue.shift();
+
+    const prevHighlight = document.querySelector('.card-high');
+    if (prevHighlight) {
+        prevHighlight.classList.remove('card-high');
+    }
+
+    const pickElem = allCards.children[randPick];
+    pickElem.classList.add('card-high');
+    allCards.scroll({
+        top: pickElem.offsetTop - (document.documentElement.scrollHeight / 2) + (pickElem.offsetHeight / 2),
+        left: 0,
+        behavior: "instant",
+    });
+
+    console.log(wordList[randPick].en[0]);
 }
 
 // TO DO
@@ -106,15 +151,15 @@ function synthSpeakWrap(str) {
 }
 
 function speakCurrentWord() {
-    const currentWord = wordList[currentIndex].word
+    const currentWord = wordList[currentIndex].en
     synthSpeak(currentWord, 0.5, 1.0, 'en')
 }
 
 function threeCurrentWord() {
     const threeReps = 
-        wordList[currentIndex].word + ". " +
-        wordList[currentIndex].word + ". " +
-        wordList[currentIndex].word + "."
+        wordList[currentIndex].en + ". " +
+        wordList[currentIndex].en + ". " +
+        wordList[currentIndex].en + "."
 
     synthSpeak(threeReps, 0.5, 1.0, 'en')
 }
@@ -123,10 +168,10 @@ function populateViewCards(n) {
     allCards.innerHTML = ''
     
     for (let i = 0; i < n; i++) {
-        const thisEng = wordList[i].word;
-        const thisChin = wordList[i].chinese;
+        const thisEng = wordList[i].en[0];
+        const thisChin = wordList[i].zh;
         const posArr = wordList[i].pos;
-        const synthStr = processToSynth(thisEng);
+        const spellStr = processToSynth(thisEng);
 
         const newCard = document.createElement('div');
         newCard.classList.add('one-card');
@@ -134,9 +179,19 @@ function populateViewCards(n) {
         const numDiv = document.createElement('div');
         numDiv.innerText = i + 1;
 
+        const btnBar = document.createElement('div');
+        btnBar.classList.add('btn-bar');
+
+        const wordBtn = document.createElement('button');
+        wordBtn.innerText = 'speak';
+        wordBtn.addEventListener('click', synthSpeakWrap(thisEng));
+
         const synthBtn = document.createElement('button');
-        synthBtn.innerText = 'play';
-        synthBtn.addEventListener('click', synthSpeakWrap(synthStr))
+        synthBtn.innerText = 'spell';
+        synthBtn.addEventListener('click', synthSpeakWrap(spellStr));
+
+        btnBar.append(wordBtn);
+        btnBar.append(synthBtn);
 
         const engDiv = document.createElement('div');
         engDiv.classList.add('view-eng');
@@ -151,7 +206,7 @@ function populateViewCards(n) {
         posDiv.innerText = posArr;
 
         newCard.append(numDiv);
-        newCard.append(synthBtn)
+        newCard.append(btnBar);
         newCard.append(engDiv);
         newCard.append(chinDiv);
         newCard.append(posDiv);
@@ -173,25 +228,6 @@ function processToSynth(str) {
 
     return newStr
 }
-
-function loadJSON(){
-    fetch('./data/km600_2024.json')
-    .then(res => {
-        if (res.ok) {
-            console.log('SUCCESS');
-        } else {
-            console.log('FAILURE');
-        }
-        return res.json()
-    })
-    .then(data => {
-        wordList = data;
-        // console.log(data)
-    })
-    .catch(error => console.log('ERROR'));
-}
-
-loadJSON();
 
 function resetAllTimers() {
     timerIdx = 0;
@@ -296,7 +332,7 @@ function writeToPrintout(arr, int) {
     
     for (let i = 0; i < int; i++) {
         const lineItem = document.createElement('div');
-        const thisWord = reduceToOneWord(wordList[arr[i]].word) 
+        const thisWord = reduceToOneWord(wordList[arr[i]].en) 
         lineItem.innerText = (i + 1) + ". " + thisWord;
 
         printLayer.append(lineItem);
@@ -305,14 +341,14 @@ function writeToPrintout(arr, int) {
 
 function updateDisplay() {
     currentIndex = wordQueue.shift();
-    const word = reduceToOneWord(wordList[currentIndex].word);
+    const word = reduceToOneWord(wordList[currentIndex].en);
 
     blanks.innerText = convertToBlanks(word);
     PoS.innerText = practiceCountup + ". " + wordList[currentIndex].pos[0];
 }
 
 function revealWord() {
-    const thisWord = reduceToOneWord(wordList[currentIndex].word);
+    const thisWord = reduceToOneWord(wordList[currentIndex].en);
     blanks.innerText = thisWord;
 }
 
@@ -325,10 +361,9 @@ function selectElement(elem) {
     elem.classList.add('selected');
 }
 
-function reduceToOneWord(str) {
-    let wordsArr = str.split(',')
+function reduceToOneWord(arr) {
 
-    return wordsArr[0]
+    return arr[0]
 }
 
 function reconfigButtons(str) {
