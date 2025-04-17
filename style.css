@@ -30,6 +30,14 @@ body {
     flex-direction: column;
 }
 
+.rand-btn {
+    width: 100%;
+}
+.rand-btn > * {
+    height: 80%;
+    width: 80%
+}
+
 .all-cards {
     padding: max(2vh, 2vw);
     display: flex;
@@ -40,12 +48,37 @@ body {
 
 .one-card {
     background-color: cornsilk;
-    border-radius: max(1vw, 1vh);
     color: black;
+    border-radius: max(1vw, 1vh);
     display: flex;
     gap: min(2vw, 2vh);
     padding: min(1vw, 1vh) min(2vw, 2vh);
     font-size: min(5vw, 5vh);
+    transition: background-color 0.5s, color 0.5s;
+}
+.card-high {
+    background-color: blue;
+    color: white;
+}
+
+.btn-bar {
+    display: flex;
+    align-items: center;
+}
+.btn-bar > * {
+    height: 80%;
+    transition: background 0.2s
+}
+.btn-bar > *:hover {
+    background: rgb(252, 241, 141)
+}
+.btn-bar > *:first-child {
+    border-top-left-radius: 50%;
+    border-bottom-left-radius: 50%
+}
+.btn-bar > *:last-child {
+    border-top-right-radius: 50%;
+    border-bottom-right-radius: 50%
 }
 
 .view-chin {
