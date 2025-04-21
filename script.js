@@ -10,23 +10,30 @@ import { myShuffle } from './js/shuffle.js'
 const timerDiv    = document.querySelector('.timers');
 const printLayer     = document.querySelector('.printing');
 const allCards      = document.querySelector('.all-cards');
-const mainTimer     = document.querySelector('.main-timer')
+const mainTimer     = document.querySelector('.main-timer');
 const PoS           = document.querySelector('#PoS');
 const blanks        = document.querySelector('#blanks');
 const nextBtn       = document.querySelector('#nextBtn');
-const homeBtn       = document.querySelector('#homeBtn')
+const homeBtn       = document.querySelector('#homeBtn');
 const viewBtn       = document.querySelector('#viewBtn');
+const tagsBtn       = document.querySelector('#tagsBtn');
 const pracBtn       = document.querySelector('#pracBtn');
 const speakBtn      = document.querySelector('#speakBtn');
 const printBtn      = document.querySelector('#printBtn');
 const playerCount   = document.querySelector('#playerCount');
 const randBtn       = document.querySelector('.rand-btn');
+const actionBar     = document.querySelector('.action-bar')
+const actionBtns    = document.querySelector('.action-btns');
+const tagsMenu      = document.querySelector('.tags-menu');
 
 let timerArr;
 let timerIdx = 0;
 
 let wordList;
 let wordQueue = [];
+let allTags = [];
+let excludeTags = [];
+let onlyTag = '';
 let currentIndex;
 let practiceCountup = 1;
 
@@ -37,6 +44,7 @@ pracBtn.addEventListener('click', switchLayerWrap('practice'));
 homeBtn.addEventListener('click', switchLayerWrap('menu'));
 speakBtn.addEventListener('click', speakCurrentWord);
 printBtn.addEventListener('click', printWrap);
+tagsBtn.addEventListener('click', toggleTagsMenu)
 
 function loadJSON(){
     fetch('./data/new600.json')
@@ -52,9 +60,10 @@ function loadJSON(){
         wordList = data;
         populateQueue();
         randBtn.addEventListener('click', pickRandomWord);
+        checkTags(wordList);
         // console.log(data)
     })
-    .catch(error => console.log('ERROR'));
+    .catch(error => console.log('ERROR: ' + error));
 }
 
 loadJSON();
@@ -84,17 +93,7 @@ function pickRandomWord() {
     });
 
     console.log(wordList[randPick].en[0]);
-}
-
-// TO DO
-// Open with a menu
-// Options:
-// 1. View words (in order)
-// 2. Competition practice
-// 3. Typing
-//      - Listen and type
-//      - Fill in the blank(s)
-// 4. Speaking     
+}    
 
 function populateTimers(n) {
     timerDiv.innerHTML = ''
@@ -138,7 +137,7 @@ function switchLayerWrap(str) {
                 
                 break;
             case 'views':
-                populateViewCards(wordList.length);
+                populateViewCards(wordList);
                 break;
         }
     }
@@ -164,54 +163,70 @@ function threeCurrentWord() {
     synthSpeak(threeReps, 0.5, 1.0, 'en')
 }
 
-function populateViewCards(n) {
-    allCards.innerHTML = ''
+function populateViewCards(arr, only, excludeArr) {
+    allCards.innerHTML = '';
     
-    for (let i = 0; i < n; i++) {
-        const thisEng = wordList[i].en[0];
-        const thisChin = wordList[i].zh;
-        const posArr = wordList[i].pos;
-        const spellStr = processToSynth(thisEng);
+    for (let i = 0; i < arr.length; i++) {
+        const tagCheck = arr[i].tags;
+        let noExc = true;
 
-        const newCard = document.createElement('div');
-        newCard.classList.add('one-card');
+        if (excludeArr) {
+            excludeArr.forEach(exc => {
+                if (tagCheck.includes(exc)) {
+                    noExc = false;
+                }
+            })
+        }
         
-        const numDiv = document.createElement('div');
-        numDiv.innerText = i + 1;
-
-        const btnBar = document.createElement('div');
-        btnBar.classList.add('btn-bar');
-
-        const wordBtn = document.createElement('button');
-        wordBtn.innerText = 'speak';
-        wordBtn.addEventListener('click', synthSpeakWrap(thisEng));
-
-        const synthBtn = document.createElement('button');
-        synthBtn.innerText = 'spell';
-        synthBtn.addEventListener('click', synthSpeakWrap(spellStr));
-
-        btnBar.append(wordBtn);
-        btnBar.append(synthBtn);
-
-        const engDiv = document.createElement('div');
-        engDiv.classList.add('view-eng');
-        engDiv.innerText = thisEng;
-
-        const chinDiv = document.createElement('div');
-        chinDiv.classList.add('view-chin');
-        chinDiv.innerText = thisChin;
-
-        const posDiv = document.createElement('div');
-        posDiv.classList.add('view-pos');
-        posDiv.innerText = posArr;
-
-        newCard.append(numDiv);
-        newCard.append(btnBar);
-        newCard.append(engDiv);
-        newCard.append(chinDiv);
-        newCard.append(posDiv);
-
-        allCards.append(newCard);
+        if ((only && tagCheck.includes(only)) ||
+            (!only && noExc)) 
+        {
+            const thisEng   = arr[i].en[0];
+            const thisChin  = arr[i].zh;
+            const posArr    = arr[i].pos;
+            const spellStr = processToSynth(thisEng);
+    
+            const newCard = document.createElement('div');
+            newCard.classList.add('one-card');
+            
+            const numDiv = document.createElement('div');
+            numDiv.classList.add('front-num')
+            numDiv.innerText = i + 1;
+    
+            const btnBar = document.createElement('div');
+            btnBar.classList.add('btn-bar');
+    
+            const wordBtn = document.createElement('button');
+            wordBtn.innerText = 'speak';
+            wordBtn.addEventListener('click', synthSpeakWrap(thisEng));
+    
+            const synthBtn = document.createElement('button');
+            synthBtn.innerText = 'spell';
+            synthBtn.addEventListener('click', synthSpeakWrap(spellStr));
+    
+            btnBar.append(wordBtn);
+            btnBar.append(synthBtn);
+    
+            const engDiv = document.createElement('div');
+            engDiv.classList.add('view-eng');
+            engDiv.innerText = thisEng;
+    
+            const chinDiv = document.createElement('div');
+            chinDiv.classList.add('view-chin');
+            chinDiv.innerText = thisChin;
+    
+            const posDiv = document.createElement('div');
+            posDiv.classList.add('view-pos');
+            posDiv.innerText = posArr;
+    
+            newCard.append(numDiv);
+            newCard.append(btnBar);
+            newCard.append(engDiv);
+            newCard.append(chinDiv);
+            newCard.append(posDiv);
+    
+            allCards.append(newCard);
+        }
     }
 }
 
@@ -368,7 +383,7 @@ function reduceToOneWord(arr) {
 
 function reconfigButtons(str) {
     if (str == 'menu') {
-        const allButtons = actionBar.children;
+        const allButtons = actionBtns.children;
         console.log(allButtons);
 
         for (let i = 1; i < allButtons.length - 1; i++) {
@@ -381,4 +396,77 @@ function reconfigButtons(str) {
             elem.classList.remove('thin');
         })
     }
+}
+
+function checkTags(json) {
+    json.forEach(entry => {
+        entry.tags.forEach(tag => {
+            if (!allTags.includes(tag)) {
+                allTags.push(tag);
+            }
+        })
+    })
+
+    populateTags(allTags.sort())
+}
+
+function populateTags(arr) {
+    arr.forEach(tag => {
+        const newBtn = document.createElement('button');
+        newBtn.addEventListener('click', tagWrap(tag))
+        newBtn.innerText = tag;
+
+        tagsMenu.append(newBtn);
+    })
+}
+
+function toggleTagsMenu() {
+    if(actionBar.classList.contains('flat')) {
+        actionBar.classList.remove('flat');
+    } else {
+        actionBar.classList.add('flat');
+    }
+}
+
+toggleTagsMenu()
+
+function cycleTag(str, elem) {
+    if (onlyTag == str) {
+        onlyTag = '';
+        const allGrayed = tagsMenu.querySelectorAll('.grayed');
+
+        allGrayed.forEach(elem => {
+            elem.classList.remove('grayed')
+        })
+
+    } else if (!excludeTags.includes(str)) {
+        onlyTag = '';
+        excludeTags.push(str);
+        elem.classList.add('grayed');
+
+    } else {
+        excludeTags = [];
+        onlyTag = str;
+        flipTags();
+    }
+
+    populateViewCards(wordList, onlyTag, excludeTags);
+}
+
+function tagWrap(str) {
+    return function executeOnEvent(e) {
+        cycleTag(str, e.target);
+    }
+}
+
+function flipTags() {
+    const allTags = Array.from(tagsMenu.children)
+
+    allTags.forEach(elem => {
+        if (elem.classList.contains('grayed')) {
+            elem.classList.remove('grayed');
+        } else {
+            elem.classList.add('grayed');
+        }
+    })
 }
