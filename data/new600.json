@@ -381,7 +381,7 @@
     "en": ["bus"],
     "zh": ["公車"],
     "pos": ["名詞"],
-    "tags": ["item", "transportation"]
+    "tags": ["item", "transport"]
   },
   {
     "en": ["busy"],
@@ -2925,7 +2925,7 @@
     "en": ["spring"],
     "zh": ["春天", "泉水"],
     "pos": ["名詞"],
-    "tags": ["time", "seaon"]
+    "tags": ["time", "season"]
   },
   {
     "en": ["stand"],
@@ -2979,7 +2979,7 @@
     "en": ["summer"],
     "zh": ["夏天"],
     "pos": ["名詞"],
-    "tags": ["time", "summer"]
+    "tags": ["time", "season"]
   },
   {
     "en": ["sun"],
