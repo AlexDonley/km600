@@ -53,12 +53,12 @@ button {
 .one-card {
     background-color: cornsilk;
     color: black;
-    border-radius: max(1vw, 1vh);
+    border-radius: 0.5rem;
     display: flex;
     align-items: center;
     gap: 1rem;
     padding: 0.4rem 0.8rem;
-    font-size: 3rem;
+    font-size: 2.5rem;
     transition: background-color 0.5s, color 0.5s;
 }
 .card-high {
@@ -68,6 +68,14 @@ button {
 
 .front-num {
     font-size: 1.5rem
+}
+
+.view-pos {
+    font-size: 1rem
+}
+
+.view-eng {
+    flex: 1;
 }
 
 .btn-bar {
@@ -91,9 +99,7 @@ button {
     border-bottom-right-radius: 50%
 }
 
-.view-chin {
-    flex: 1;
-}
+
 
 .option {
     background: white;
@@ -194,6 +200,8 @@ input {
     left: 0;
     bottom: 0;
     z-index: 2;
+    padding: 1rem;
+    background-color: navy;
 }
 
 .action-btns {
@@ -237,7 +245,6 @@ input {
     color: black;
     height: auto;
     background-color: navy;
-    padding: 1rem;
     transition: height 0.3s;
 }
 .tags-menu > button {
@@ -253,6 +260,7 @@ input {
 
 .flat {
     height: 0px;
+    padding: 0px;
 }
 
 .display-words {
