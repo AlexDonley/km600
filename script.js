@@ -22,9 +22,13 @@ const speakBtn      = document.querySelector('#speakBtn');
 const printBtn      = document.querySelector('#printBtn');
 const playerCount   = document.querySelector('#playerCount');
 const randBtn       = document.querySelector('.rand-btn');
-const actionBar     = document.querySelector('.action-bar')
+const actionBar     = document.querySelector('.action-bar');
 const actionBtns    = document.querySelector('.action-btns');
 const tagsMenu      = document.querySelector('.tags-menu');
+const posSelect     = document.querySelector('#posSelect');
+const numInp        = document.querySelector('#numInp');
+const letterCheck   = document.querySelector('#letterCheck');
+const posCheck      = document.querySelector('#posCheck');
 
 let timerArr;
 let timerIdx = 0;
@@ -32,19 +36,39 @@ let timerIdx = 0;
 let wordList;
 let wordQueue = [];
 let allTags = [];
-let excludeTags = [];
-let onlyTag = '';
+let allPOS = [];
+let includeTags = [];
+let tagMode = 'sub';
+let prevTag = '';
 let currentIndex;
 let practiceCountup = 1;
 
+letterCheck.checked = false;
+posCheck.checked = false;
 
+letterCheck.addEventListener('change', function(){
+    populateViewCards(wordList, includeTags);
+});
+posCheck.addEventListener('change', function() {
+    populateViewCards(wordList, includeTags);
+});
+numInp.addEventListener('change', function() {
+    if (letterCheck.checked) {
+        populateViewCards(wordList, includeTags);
+    }
+})
+posSelect.addEventListener('change', function() {
+    if (posCheck.checked) {
+        populateViewCards(wordList, includeTags);
+    }
+})
 nextBtn.addEventListener('click', next);
 viewBtn.addEventListener('click', switchLayerWrap('views'));
 pracBtn.addEventListener('click', switchLayerWrap('practice'));
 homeBtn.addEventListener('click', switchLayerWrap('menu'));
 speakBtn.addEventListener('click', speakCurrentWord);
 printBtn.addEventListener('click', printWrap);
-tagsBtn.addEventListener('click', toggleTagsMenu)
+tagsBtn.addEventListener('click', toggleTagsMenu);
 
 function loadJSON(){
     fetch('./data/new600.json')
@@ -60,7 +84,14 @@ function loadJSON(){
         wordList = data;
         populateQueue();
         randBtn.addEventListener('click', pickRandomWord);
-        checkTags(wordList);
+
+        attrToArr(wordList, 'pos', allPOS);
+        populatePOS(allPOS);
+
+        attrToArr(wordList, 'tags', allTags);
+        populateTags(allTags);
+        includeTags = [...allTags];
+
         // console.log(data)
     })
     .catch(error => console.log('ERROR: ' + error));
@@ -137,7 +168,7 @@ function switchLayerWrap(str) {
                 
                 break;
             case 'views':
-                populateViewCards(wordList);
+                populateViewCards(wordList, allTags);
                 break;
         }
     }
@@ -163,31 +194,56 @@ function threeCurrentWord() {
     synthSpeak(threeReps, 0.5, 1.0, 'en')
 }
 
-function populateViewCards(arr, only, excludeArr) {
+function populateViewCards(arr, includeArr) {
     allCards.innerHTML = '';
     
-    for (let i = 0; i < arr.length; i++) {
-        const tagCheck = arr[i].tags;
-        let noExc = true;
+    for (let i = 0; i < wordList.length; i++) {
+        const thisEng   = arr[i].en[0];
+        const tagCheck  = arr[i].tags;
+        const posArr    = arr[i].pos;
+        let includeThis = true;
 
-        if (excludeArr) {
-            excludeArr.forEach(exc => {
-                if (tagCheck.includes(exc)) {
-                    noExc = false;
+        if (posCheck.checked || letterCheck.checked) {
+            if (posCheck.checked && letterCheck.checked) {
+                if (posArr.includes(posSelect.value) && (thisEng.replace(" ", "").length == numInp.value)) {
+                    includeThis = true;
+                } else {
+                    includeThis = false;
                 }
-            })
+            } else if (
+                posCheck.checked && posArr.includes(posSelect.value) ||
+                letterCheck.checked && (thisEng.replace(" ", "").length == numInp.value)
+            ) 
+            {
+                includeThis = true;
+            } else {
+                includeThis = false;
+            }
+        }
+
+        if (includeArr && includeThis) {            
+            includeThis = false;
+            if (tagMode == 'sub' && tagCheck.length < 1) {
+                includeThis = true
+            } else {
+                includeArr.forEach(inc => {
+                    if (tagCheck.includes(inc)) {
+                        includeThis = true;
+                    }
+                })
+            }
         }
         
-        if ((only && tagCheck.includes(only)) ||
-            (!only && noExc)) 
+        if (includeThis) 
         {
-            const thisEng   = arr[i].en[0];
             const thisChin  = arr[i].zh;
-            const posArr    = arr[i].pos;
             const spellStr = processToSynth(thisEng);
     
             const newCard = document.createElement('div');
             newCard.classList.add('one-card');
+
+            const frontGrid = document.createElement('div');
+            frontGrid.classList.add('front-grid');
             
             const numDiv = document.createElement('div');
             numDiv.classList.add('front-num')
@@ -219,11 +275,13 @@ function populateViewCards(arr, only, excludeArr) {
             posDiv.classList.add('view-pos');
             posDiv.innerText = posArr;
     
-            newCard.append(numDiv);
+            frontGrid.append(numDiv);
+            frontGrid.append(posDiv);
             newCard.append(btnBar);
+            newCard.append(frontGrid);
+            
             newCard.append(engDiv);
             newCard.append(chinDiv);
-            newCard.append(posDiv);
     
             allCards.append(newCard);
         }
@@ -398,16 +456,16 @@ function reconfigButtons(str) {
     }
 }
 
-function checkTags(json) {
+function attrToArr(json, attr, resArr) {
     json.forEach(entry => {
-        entry.tags.forEach(tag => {
-            if (!allTags.includes(tag)) {
-                allTags.push(tag);
+        entry[attr].forEach(tag => {
+            if (!resArr.includes(tag)) {
+                resArr.push(tag);
             }
         })
     })
 
-    populateTags(allTags.sort())
+    return resArr.sort()
 }
 
 function populateTags(arr) {
@@ -417,6 +475,16 @@ function populateTags(arr) {
         newBtn.innerText = tag;
 
         tagsMenu.append(newBtn);
+    })
+}
+
+function populatePOS(arr) {
+    arr.forEach(pos => {
+        const posOption = document.createElement('option');
+        posOption.value = pos;
+        posOption.innerText = pos;
+
+        posSelect.append(posOption)
     })
 }
 
@@ -431,26 +499,56 @@ function toggleTagsMenu() {
 toggleTagsMenu()
 
 function cycleTag(str, elem) {
-    if (onlyTag == str) {
-        onlyTag = '';
-        const allGrayed = tagsMenu.querySelectorAll('.grayed');
 
-        allGrayed.forEach(elem => {
-            elem.classList.remove('grayed')
-        })
+    if (str == prevTag) {
 
-    } else if (!excludeTags.includes(str)) {
-        onlyTag = '';
-        excludeTags.push(str);
-        elem.classList.add('grayed');
+        if (includeTags.length == 0 || (includeTags.length == 1 && includeTags[0] == str)) {
 
-    } else {
-        excludeTags = [];
-        onlyTag = str;
-        flipTags();
+            includeTags = [...allTags];
+            const allGrays = tagsMenu.querySelectorAll('.grayed');
+
+            allGrays.forEach(elem => {
+                elem.classList.remove('grayed');
+            })
+
+            prevTag = '';
+            tagMode = 'sub';
+
+        } else {
+            flipTagBtns();
+            includeTags = flipTagArr();
+            
+            if (tagMode == 'sub') {
+                tagMode = 'add';
+    
+            } else {
+                tagMode = 'sub';
+            }
+
+            prevTag = str;
+        }
+
+    } else  {
+
+        if (includeTags.includes(str)) {
+            elem.classList.add('grayed');
+            const thisInd = includeTags.indexOf(str)
+    
+            if (thisInd > -1) {
+                includeTags.splice(includeTags.indexOf(str), 1)
+            }
+
+        } else {
+            elem.classList.remove('grayed');
+            includeTags.push(str);
+        }
+
+        prevTag = str;
     }
 
-    populateViewCards(wordList, onlyTag, excludeTags);
+    includeTags.sort();
+    //console.log(includeTags);
+    populateViewCards(wordList, includeTags);
 }
 
 function tagWrap(str) {
@@ -459,7 +557,7 @@ function tagWrap(str) {
     }
 }
 
-function flipTags() {
+function flipTagBtns() {
     const allTags = Array.from(tagsMenu.children)
 
     allTags.forEach(elem => {
@@ -469,4 +567,16 @@ function flipTags() {
             elem.classList.add('grayed');
         }
     })
+}
+
+function flipTagArr() {
+    let flippedTags = []
+
+    allTags.forEach(tag => {     
+        if (!includeTags.includes(tag)) {
+            flippedTags.push(tag)
+        }
+    })
+
+    return flippedTags
 }
